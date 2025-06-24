@@ -1,0 +1,16 @@
+{
+  "name": "slack-bolt-app",
+  "version": "1.0.0",
+  "description": "Simple Slack app using Bolt for JavaScript",
+  "main": "app.js",
+  "private": true,
+  "scripts": {
+    "start": "node app.js",
+    "dev": "node app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.17.1",
+    "dotenv": "^16.3.1"
+  }
+}
