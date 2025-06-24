@@ -30,7 +30,3 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1  
 
-    - name: Update Kubernetes deployment image
-      run: |
-        kubectl set image deployment/slack-bolt-deployment slack-bolt-container=arion849/slack-bolt-app:latest
-        kubectl rollout status deployment/slack-bolt-deployment
