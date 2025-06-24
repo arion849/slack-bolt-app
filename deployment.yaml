@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slack-bolt-deployment
+  labels:
+    app: slack-bolt
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: slack-bolt
+  template:
+    metadata:
+      labels:
+        app: slack-bolt
+    spec:
+      containers:
+        - name: slack-bolt-container
+          image: arion849/slack-bolt-app:latest   # Your Docker Hub image
+          ports:
+            - containerPort: 3000                  # Change if your app listens on another port
+          env:
+            - name: SLACK_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: slack-env
+                  key: SLACK_BOT_TOKEN
+            - name: SLACK_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: slack-env
+                  key: SLACK_SIGNING_SECRET

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: slack-bolt-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: slack-bolt
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000  # Your app port
