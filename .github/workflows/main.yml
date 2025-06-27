@@ -36,10 +36,13 @@ jobs:
         echo "Image version: $new_version"
 
     - name: Create and push Git tag
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git tag ${{ steps.version.outputs.version }}
+        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/arion849/slack-bolt-app.git
         git push origin ${{ steps.version.outputs.version }}
 
     - name: Log in to JFrog Docker Registry
