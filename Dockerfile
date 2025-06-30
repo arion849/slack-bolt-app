@@ -16,3 +16,5 @@ EXPOSE 3000
 
 # Command to run your app
 CMD ["node", "app.js"]
+
+# Test
