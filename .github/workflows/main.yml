@@ -39,15 +39,19 @@ jobs:
         echo "Image version: $new_version"
 
     - name: Create and push Git tag
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
-      run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
-        git tag ${{ steps.version.outputs.version }}
-        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/arion849/slack-bolt-app.git
-        git push origin ${{ steps.version.outputs.version }}
-
+  env:
+    GH_PAT: ${{ secrets.GH_PAT }}
+  run: |
+    git fetch --tags
+    if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+      echo "Tag ${{ steps.version.outputs.version }} already exists. Skipping tag creation."
+    else
+      git config user.name "GitHub Actions"
+      git config user.email "actions@github.com"
+      git tag ${{ steps.version.outputs.version }}
+      git remote set-url origin https://x-access-token:${GH_PAT}@github.com/arion849/slack-bolt-app.git
+      git push origin ${{ steps.version.outputs.version }}
+    fi
     - name: Log in to JFrog Docker Registry
       uses: docker/login-action@v2
       with:
