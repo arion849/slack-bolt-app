@@ -1,5 +1,7 @@
 name: Deploy Slack Bolt App to EKS
 
+# Triggered by branch push: main
+
 on:
   push:
     branches:
