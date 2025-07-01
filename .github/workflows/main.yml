@@ -75,7 +75,7 @@ jobs:
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git add k8s/deployment.yaml
-        git commit -m "Update deployment to image tag ${{ steps.version.outputs.version }}"
+        git commit --allow-empty -m "Update deployment to image tag ${{ steps.version.outputs.version }} [ci skip]"
         git push origin main
 
  #   - name: Configure AWS credentials
