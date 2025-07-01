@@ -71,10 +71,11 @@ jobs:
       run: |
         git clone https://x-access-token:${GH_PAT}@github.com/arion849/ArgoCD.git
         cd ArgoCD
-        sed -i "s|trialymloms.jfrog.io/bot-docker/slack-bolt-app:.*|trialymloms.jfrog.io/bot-docker/slack-bolt-app:${{ steps.version.outputs.version }}|g" helm/your-helm-chart/slack-bolt-app/values.yaml
+        sed -i "s|trialymloms.jfrog.io/bot-docker/slack-bolt-app:.*|trialymloms.jfrog.io/bot-docker/slack-bolt-app:${{ steps.version.outputs.version }}|g" k8s/deployment.yaml
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
-        git commit -am "Update image tag to ${{ steps.version.outputs.version }}"
+        git add k8s/deployment.yaml
+        git commit -m "Update deployment to image tag ${{ steps.version.outputs.version }}"
         git push origin main
 
  #   - name: Configure AWS credentials
