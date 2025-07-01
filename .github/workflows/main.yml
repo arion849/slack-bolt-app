@@ -1,7 +1,5 @@
 name: Deploy Slack Bolt App to EKS
 
-# Triggered by branch push: main
-
 on:
   push:
     branches:
@@ -15,78 +13,73 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+    - name: Checkout code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      - name: Get latest tag and bump version
-        id: version
-        run: |
-          git fetch --tags
-          latest_tag=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+$' | head -n 1)
-          if [[ -z "$latest_tag" ]]; then
-            new_version="1.0"
-          else
-            base=${latest_tag#v}
-            major=$(echo $base | cut -d. -f1)
-            minor=$(echo $base | cut -d. -f2)
-            new_minor=$((minor + 1))
-            new_version="${major}.${new_minor}"
-          fi
-          echo "version=$new_version" >> $GITHUB_OUTPUT
-          echo "Image version: $new_version"
+    - name: Get latest tag and bump version
+      id: version
+      run: |
+        git fetch --tags
+        latest_tag=$(git tag --sort=-v:refname | grep -E '^v?[0-9]+\.[0-9]+$' | head -n 1)
+        if [[ -z "$latest_tag" ]]; then
+          new_version="1.0"
+        else
+          base=${latest_tag#v}
+          major=$(echo $base | cut -d. -f1)
+          minor=$(echo $base | cut -d. -f2)
+          new_minor=$((minor + 1))
+          new_version="${major}.${new_minor}"
+        fi
+        echo "version=$new_version" >> $GITHUB_OUTPUT
+        echo "Image version: $new_version"
 
-      - name: Set up Git
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
+    - name: Create and push Git tag
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag ${{ steps.version.outputs.version }}
+        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/arion849/slack-bolt-app.git
+        git push origin ${{ steps.version.outputs.version }}
 
-      - name: Push changes to workflow file
-        env:
-          GH_PAT: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          git remote set-url origin https://x-access-token:${GH_PAT}@github.com/arion849/slack-bolt-app.git
-          git add .github/workflows/main.yml
-          git commit -m "Update workflow file"
-          git push origin HEAD:1.5
+    - name: Log in to JFrog Docker Registry
+      uses: docker/login-action@v2
+      with:
+        registry: trialymloms.jfrog.io
+        username: ${{ secrets.JFROG_USERNAME }}
+        password: ${{ secrets.JFROG_API_KEY }}
 
-      - name: Log in to JFrog Docker Registry
-        uses: docker/login-action@v2
-        with:
-          registry: trialymloms.jfrog.io
-          username: ${{ secrets.JFROG_USERNAME }}
-          password: ${{ secrets.JFROG_API_KEY }}
+    - name: Build and push Docker image to JFrog
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: |
+          trialymloms.jfrog.io/bot-docker/slack-bolt-app:latest
+          trialymloms.jfrog.io/bot-docker/slack-bolt-app:${{ steps.version.outputs.version }}
+        cache-from: type=registry,ref=trialymloms.jfrog.io/bot-docker/slack-bolt-app:latest
 
-      - name: Build and push Docker image to JFrog
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          tags: |
-            trialymloms.jfrog.io/bot-docker/slack-bolt-app:latest
-            trialymloms.jfrog.io/bot-docker/slack-bolt-app:${{ steps.version.outputs.version }}
-          cache-from: type=registry,ref=trialymloms.jfrog.io/bot-docker/slack-bolt-app:latest
+    - name: Update ArgoCD manifest with new tag
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        git clone https://x-access-token:${GH_PAT}@github.com/arion849/ArgoCD.git
+        cd ArgoCD
+        sed -i "s|trialymloms.jfrog.io/bot-docker/slack-bolt-app:.*|trialymloms.jfrog.io/bot-docker/slack-bolt-app:${{ steps.version.outputs.version }}|g" helm/your-helm-chart/slack-bolt-app/values.yaml
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git commit -am "Update image tag to ${{ steps.version.outputs.version }}"
+        git push origin main
 
-      - name: Update ArgoCD manifest with new tag
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git clone https://x-access-token:${GH_PAT}@github.com/arion849/ArgoCD.git
-          cd ArgoCD
-          sed -i "s|trialymloms.jfrog.io/bot-docker/slack-bolt-app:.*|trialymloms.jfrog.io/bot-docker/slack-bolt-app:${{ steps.version.outputs.version }}|g" helm/your-helm-chart/slack-bolt-app/values.yaml
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git commit -am "Update image tag to ${{ steps.version.outputs.version }}"
-          git push origin main
-
-# Optional AWS credentials setup (currently commented out)
-#     - name: Configure AWS credentials
-#       uses: aws-actions/configure-aws-credentials@v2
-#       with:
-#         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-#         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-#         aws-region: us-east-1
+ #   - name: Configure AWS credentials
+  #    uses: aws-actions/configure-aws-credentials@v2
+   #   with:
+    #    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+     #   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #  aws-region: us-east-1
