@@ -1,4 +1,4 @@
-const { App, LogLevel } = require('@slack/bolt');
+const { App, LogLevel, ExpressReceiver } = require('@slack/bolt');
 require('dotenv').config();
 
 // Validate required environment variables
@@ -54,12 +54,22 @@ function validateEnvironmentVariables() {
 // Validate environment variables before initializing the app
 validateEnvironmentVariables();
 
-// Initialize your app with your bot token and signing secret
+// Create an ExpressReceiver instance
+const receiver = new ExpressReceiver({
+  signingSecret: process.env.SLACK_SIGNING_SECRET,
+  processBeforeResponse: true
+});
+
+// Register your custom route
+receiver.router.get('/', (req, res) => {
+  console.log('Root route accessed');
+  res.send('Slack Bolt app is running!');
+});
+
+// Initialize your app with the receiver
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
-  signingSecret: process.env.SLACK_SIGNING_SECRET,
-  socketMode: false, // Set to true if using Socket Mode for development
-  port: process.env.PORT || 3000,
+  receiver,
   logLevel: LogLevel.ERROR
 });
 
@@ -95,7 +105,7 @@ app.error((error) => {
 // Start your app
 (async () => {
   try {
-    await app.start();
+    await app.start(process.env.PORT || 3000);
     console.log('⚡️ Bolt app is running!');
     console.log(`🚀 Server is listening on port ${process.env.PORT || 3000}`);
   } catch (error) {
