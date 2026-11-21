@@ -1,6 +1,27 @@
-# Slack Bolt App - Hello Command
+# Slack Bolt App
 
-A simple Slack app built with Bolt for JavaScript that responds to the `/hello` slash command with "Hello, Arion!".
+A Slack bot built with Bolt for JavaScript, plus the CI/CD pipeline that ships it to Kubernetes the GitOps way. The bot answers the `/hello` slash command. Most of the work is in the pipeline.
+
+## Deployment pipeline
+
+```mermaid
+flowchart LR
+    A[push to main] --> B[GitHub Actions]
+    B --> C[bump version tag]
+    C --> D[build and push image to JFrog]
+    D --> E[update image tag in ArgoCD repo]
+    E --> F[ArgoCD syncs to Kubernetes]
+```
+
+On every push to `main`, [`.github/workflows/main.yml`](.github/workflows/main.yml):
+
+1. Reads the latest `major.minor` git tag, bumps the minor version and pushes the new tag.
+2. Builds the Docker image with Buildx and pushes it to a JFrog Artifactory registry as `latest` plus the version tag, reusing the registry layer cache.
+3. Clones the deployment repo, [arion849/ArgoCD](https://github.com/arion849/ArgoCD), rewrites the image tag in `k8s/deployment.yaml` and commits it.
+
+ArgoCD watches that repo and rolls the new version out to the cluster. The app's code and its deployment config live in separate repos, so every release shows up as a commit in the deployment history.
+
+Bot credentials are injected from a Kubernetes secret (`slack-env`). Registry and GitHub credentials are GitHub Actions secrets.
 
 ## Setup Instructions
 
@@ -76,14 +97,3 @@ The bot will respond with: "Hello, Arion!"
 - Error handling and logging
 - Environment-based configuration
 - Ready for deployment to cloud platforms
-
-## Deployment
-
-This app can be deployed to various platforms:
-- Heroku
-- Railway
-- Render
-- AWS Lambda
-- Google Cloud Functions
-
-Make sure to set your environment variables in your deployment platform.
